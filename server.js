@@ -23,29 +23,24 @@ const server = http.createServer((req, res) => {
     // Page d'accueil
     if (url === '/') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(`SSH over WebSocket Tunnel OK\n\nwss://${domain}/ws\n\nLogin: ${USERNAME} / ${PASSWORD}\n`);
+        res.end(`SSH WebSocket Tunnel OK\n\nwss://${domain}/ws\n\nLogin: ${USERNAME} / ${PASSWORD}\n`);
         return;
     }
     
-    // Configuration client WebSocket
+    // Configuration client
     if (url === '/config') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end(`wss://${domain}/ws\nLogin: ${USERNAME}\nPassword: ${PASSWORD}\n`);
         return;
     }
     
-    // === ROUTE SSH avec IP à la fin ===
+    // === PAYLOAD SSH avec IP à la fin ===
     if (url === `/${VPS_IP}`) {
-        const sshConfig = `🔐 SSH over WebSocket Configuration\n\n` +
-            `WebSocket URL: wss://${domain}/ws\n` +
-            `Authentication: Basic ${USERNAME}:${PASSWORD}\n` +
-            `Destination: ${VPS_HOST}:${VPS_PORT} (SSH)\n\n` +
-            `Command (websocat):\n` +
-            `websocat --binary -H "Authorization: Basic $(echo -n '${USERNAME}:${PASSWORD}' | base64)" wss://${domain}/ws\n\n` +
-            `Then: ssh -p 22 root@${VPS_HOST}`;
+        const payload = `GET / HTTP/1.1[crlf]Host: ${domain}[crlf]Connection: Upgrade[crlf]User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)[crlf]Upgrade: websocket[crlf][crlf]`;
+        
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(sshConfig);
-        console.log(`🔗 Configuration SSH générée (IP: ${VPS_IP})`);
+        res.end(payload);
+        console.log(`🔗 Payload SSH généré (IP: ${VPS_IP})`);
         return;
     }
     
@@ -109,7 +104,7 @@ server.on('upgrade', (req, socket, head) => {
             '\r\n'
         ].join('\r\n'));
         
-        // Transférer les données (tunnel binaire)
+        // Transférer les données
         vpsSocket.pipe(socket);
         socket.pipe(vpsSocket);
     });
