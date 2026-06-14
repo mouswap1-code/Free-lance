@@ -1,5 +1,6 @@
 const http = require('http');
 const crypto = require('crypto');
+const net = require('net');
 
 // Configuration
 const PORT = process.env.PORT || 8080;
@@ -18,8 +19,7 @@ console.log('==========================================');
 // Serveur HTTP
 const server = http.createServer((req, res) => {
     const url = req.url;
-    const domain = req.headers.host || 'free-lance-824656167733.us-central1.run.app
-';
+    const domain = req.headers.host || 'free-lance-824656167733.us-central1.run.app';
     
     // Page d'accueil
     if (url === '/') {
@@ -37,7 +37,7 @@ const server = http.createServer((req, res) => {
     
     // === PAYLOAD SSH avec IP à la fin ===
     if (url === `/${VPS_IP}`) {
-        const payload = `GET / HTTP/1.1[crlf]Host: ${domain}[crlf]Connection: Upgrade[crlf]User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)[crlf]Upgrade: websocket[crlf][crlf]`;
+        const payload = `GET / HTTP/1.1\r\nHost: ${domain}\r\nConnection: Upgrade\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\nUpgrade: websocket\r\n\r\n`;
         
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end(payload);
@@ -86,7 +86,6 @@ server.on('upgrade', (req, socket, head) => {
     console.log(`✅ Authentification réussie: ${username}`);
     
     // Connexion au VPS (SSH)
-    const net = require('net');
     const vpsSocket = net.connect(VPS_PORT, VPS_HOST, () => {
         console.log(`🔗 Connecté au VPS ${VPS_HOST}:${VPS_PORT}`);
         
@@ -117,6 +116,11 @@ server.on('upgrade', (req, socket, head) => {
     
     socket.on('error', (err) => {
         console.error(`❌ Erreur WebSocket: ${err.message}`);
+        vpsSocket.destroy();
+    });
+    
+    socket.on('close', () => {
+        console.log('🔌 WebSocket déconnecté');
         vpsSocket.destroy();
     });
 });
