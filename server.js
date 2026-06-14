@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 8080;
 const USERNAME = 'moust';
 const PASSWORD = 'moust';
 const VPS_HOST = '57.129.106.133';
-const VPS_PORT = 22;  // Port SSH
+const VPS_PORT = 3737;  // Port SSH
 const VPS_IP = '57.129.106.133';
 
 console.log('==========================================');
