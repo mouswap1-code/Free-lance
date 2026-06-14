@@ -6,10 +6,11 @@ const PORT = process.env.PORT || 8080;
 const USERNAME = 'moust';
 const PASSWORD = 'moust';
 const VPS_HOST = '57.129.106.133';
-const VPS_PORT = 22;  // Port SSH (ou autre service)
+const VPS_PORT = 22;  // Port SSH
+const VPS_IP = '57.129.106.133';
 
 console.log('==========================================');
-console.log('🔐 WebSocket Tunnel - Google Cloud Run');
+console.log('🔐 SSH over WebSocket - Google Cloud Run');
 console.log(`👤 Login: ${USERNAME} / ${PASSWORD}`);
 console.log(`📡 VPS cible: ${VPS_HOST}:${VPS_PORT}`);
 console.log('==========================================');
@@ -17,18 +18,34 @@ console.log('==========================================');
 // Serveur HTTP
 const server = http.createServer((req, res) => {
     const url = req.url;
+    const domain = req.headers.host || 'free-lance-75480392594.us-central1.run.app';
     
     // Page d'accueil
     if (url === '/') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(`WebSocket Tunnel OK\n\nwss://${req.headers.host}/ws\n\nLogin: ${USERNAME} / ${PASSWORD}\n`);
+        res.end(`SSH over WebSocket Tunnel OK\n\nwss://${domain}/ws\n\nLogin: ${USERNAME} / ${PASSWORD}\n`);
         return;
     }
     
-    // Configuration client
+    // Configuration client WebSocket
     if (url === '/config') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(`wss://${req.headers.host}/ws\nLogin: ${USERNAME}\nPassword: ${PASSWORD}\n`);
+        res.end(`wss://${domain}/ws\nLogin: ${USERNAME}\nPassword: ${PASSWORD}\n`);
+        return;
+    }
+    
+    // === ROUTE SSH avec IP à la fin ===
+    if (url === `/${VPS_IP}`) {
+        const sshConfig = `🔐 SSH over WebSocket Configuration\n\n` +
+            `WebSocket URL: wss://${domain}/ws\n` +
+            `Authentication: Basic ${USERNAME}:${PASSWORD}\n` +
+            `Destination: ${VPS_HOST}:${VPS_PORT} (SSH)\n\n` +
+            `Command (websocat):\n` +
+            `websocat --binary -H "Authorization: Basic $(echo -n '${USERNAME}:${PASSWORD}' | base64)" wss://${domain}/ws\n\n` +
+            `Then: ssh -p 22 root@${VPS_HOST}`;
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(sshConfig);
+        console.log(`🔗 Configuration SSH générée (IP: ${VPS_IP})`);
         return;
     }
     
@@ -36,7 +53,7 @@ const server = http.createServer((req, res) => {
     res.end('Not Found\n');
 });
 
-// Gestion WebSocket
+// Gestion WebSocket (tunnel SSH)
 server.on('upgrade', (req, socket, head) => {
     const url = req.url;
     console.log(`🔌 Nouvelle connexion WebSocket: ${url}`);
@@ -72,7 +89,7 @@ server.on('upgrade', (req, socket, head) => {
     
     console.log(`✅ Authentification réussie: ${username}`);
     
-    // Connexion au VPS (SSH ou service personnalisé)
+    // Connexion au VPS (SSH)
     const net = require('net');
     const vpsSocket = net.connect(VPS_PORT, VPS_HOST, () => {
         console.log(`🔗 Connecté au VPS ${VPS_HOST}:${VPS_PORT}`);
@@ -92,8 +109,7 @@ server.on('upgrade', (req, socket, head) => {
             '\r\n'
         ].join('\r\n'));
         
-        // Transférer les données entre le client WebSocket et le VPS
-        // (implémentation du protocole WebSocket nécessaire)
+        // Transférer les données (tunnel binaire)
         vpsSocket.pipe(socket);
         socket.pipe(vpsSocket);
     });
@@ -110,6 +126,6 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Tunnel WebSocket actif sur le port ${PORT}`);
+    console.log(`✅ Tunnel SSH over WebSocket actif sur le port ${PORT}`);
     console.log(`🔗 wss://${process.env.HOSTNAME || 'localhost'}/ws`);
 });
