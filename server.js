@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const PORT = process.env.PORT || 8080;
 const USERNAME = 'Came';
 const PASSWORD = 'Came';
-const VPS_HOST = '188.166.52.176';
+const VPS_HOST = '13.140.152.18';
 const VPS_PORT = 22;  // Port SSH (ou autre service)
 
 console.log('==========================================');
